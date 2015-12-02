@@ -6,6 +6,7 @@ const FS = require("fs");
 const Q = require("q");
 const VERSIONY = require("versiony");
 const SPAWN = require("child_process").spawn;
+const MINIMIST = require("minimist");
 
 
 function runCommands (basePath, commands, showProgress) {
@@ -71,12 +72,21 @@ function ensurePreconditionsAreMet (packageBasePath) {
 	});
 }
 
-function bumpPackage (packageDescriptorPath) {
+function bumpPackage (packageDescriptorPath, args) {
 
 	// TODO: Don't bump if no changes and last commit tagged. i.e. just republish.
 	// TODO: Don't publish if latest tagged version is comitted.
 
-	VERSIONY.from(packageDescriptorPath).patch().to(packageDescriptorPath).end();
+	var versiony = VERSIONY.from(packageDescriptorPath);
+	if (args["minor"]) {
+		versiony.minor();
+	} else
+	if (args["major"]) {
+		versiony.major();
+	} else {
+		versiony.patch();
+	}
+	versiony.to(packageDescriptorPath).end();
 
 	var version = VERSIONY.from(packageDescriptorPath).get();
 
@@ -93,12 +103,14 @@ function bumpPackage (packageDescriptorPath) {
 
 if (require.main === module) {
 	Q.fcall(function () {
+		
+	    var argv = MINIMIST(process.argv.slice(2));
 
 		var packageDescriptorPath = PATH.resolve("package.json");
 
 		return ensurePreconditionsAreMet(PATH.dirname(packageDescriptorPath)).then(function () {
 
-			return bumpPackage(packageDescriptorPath);
+			return bumpPackage(packageDescriptorPath, argv);
 
 		});
 
