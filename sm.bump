@@ -93,13 +93,33 @@ function bumpPackage (packageDescriptorPath, args) {
 
 	var version = VERSIONY.from(packageDescriptorPath).get();
 
-	return runCommands(PATH.dirname(packageDescriptorPath), [
+	var descriptor = JSON.parse(FS.readFileSync(packageDescriptorPath, "utf8"));
+
+	var commands = [
+		'rm -Rf .rt || true',
+		'rm -Rf */.rt || true',
+		'rm -Rf */*/.rt || true',
+		'rm -Rf */*/*/.rt || true',
+		'rm -Rf */*/*/*/.rt || true',
 		'git add package.json',
 		'git commit -m "bump package version to: ' + version + '"',
 		'git tag v' + version,
-		'git push origin master --tags',
-		'npm publish'
-	], true);
+		'git push origin master --tags'
+	];
+
+	if (descriptor.private !== true) {
+		if (
+			descriptor.pm === "npm" ||
+			(
+				descriptor.pm &&
+				descriptor.pm.publish === "npm"
+			)
+		) {
+			commands.push('npm publish --access public');		
+		}
+	}
+
+	return runCommands(PATH.dirname(packageDescriptorPath), commands, true);
 }
 
 
